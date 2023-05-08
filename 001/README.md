@@ -1,4 +1,5 @@
 # Hydrozoa: Lightweight and scalable Hydra Heads
+
 <i>By George Flerovsky</i>
 
 This paper introduces <i>Hydrozoa</i> — an adaptation of the [Coordinated Hydra Head protocol](https://github.com/ch1bo/hydra-spec) with more lightweight and scalable Hydra Heads. It introduces cheap and deterministic state update transactions as the default way to commit utxos to and decommit utxos from the Hydra Head. A similarly cheap finalization procedure can be used to stop operating the head if consensus can be maintained throughout its life. The halt and dissolve procedures (analogous to close and fanout in the Coordinated Hydra Head) are more expensive and should only be used if L2 consensus breaks down.
@@ -12,20 +13,23 @@ The [Hydra Head protocol](https://hydra.family/head-protocol/) allows a group of
 The protocol was developed before Plutus was added to mainnet, effective design patterns emerged for building dApps in the eUTXO model, and the Vasil enhancements enabled a completely different approach to dApp design on Cardano. It can be improved by applying the lessons learned over the past year.
 
 ## Design
+
 The main design ideas of Hydrozoa are:
+
 1. Eliminate the initialization phase — open the Hydra Head immediately with an empty L2 active utxo set.
-2. Commit utxos on L1 to the head simply by sending them to a native script address controlled by the participants' keys.
-3. Transact on L2 in the same way as before, using Cardano ledger rules to apply transactions to the L2 active utxo set.
-4. Decommit utxos via a new L2 request to remove certain utxos from the L2 active utxo set, validated like an input-only transaction via modified Cardano ledger rules.
-5. While the head is open, periodically collect commits and release decommits on L1, updating the major version in the L1 head state. Semantic versioning is used because these updates are backwards incompatible with previous snapshots — updates change the balance of funds at the head state utxo.
-6. If participants can maintain L2 consensus, finalize the head and release its L2 active utxo set on L1 just as cheaply and efficiently as if all utxos decommitted.
-7. If L2 consensus breaks down, halt the head and dissolve its remaining funds to produce outputs corresponding to the L2 active utxo set of the snapshot with which it was halted. Dissolution is specified and authorized via multi-signed certificates instead of multi-signed transactions.
-8. Spin off the contestation mechanism so that it can only affect the head state when the contestation deadline elapses or all participants have exercised their right to contest.
-9. Updates should be used during normal operation to commit and decommit utxos, finalization should be used if the participants want to stop operating the head, and the contestation mechanism should only be used to halt the head if consensus breaks down.
+1. Commit utxos on L1 to the head simply by sending them to a native script address controlled by the participants' keys.
+1. Transact on L2 in the same way as before, using Cardano ledger rules to apply transactions to the L2 active utxo set.
+1. Decommit utxos via a new L2 request to remove certain utxos from the L2 active utxo set, validated like an input-only transaction via modified Cardano ledger rules.
+1. While the head is open, periodically collect commits and release decommits on L1, updating the major version in the L1 head state. Semantic versioning is used because these updates are backwards incompatible with previous snapshots — updates change the balance of funds at the head state utxo.
+1. If participants can maintain L2 consensus, finalize the head and release its L2 active utxo set on L1 just as cheaply and efficiently as if all utxos decommitted.
+1. If L2 consensus breaks down, halt the head and dissolve its remaining funds to produce outputs corresponding to the L2 active utxo set of the snapshot with which it was halted. Dissolution is specified and authorized via multi-signed certificates instead of multi-signed transactions.
+1. Spin off the contestation mechanism so that it can only affect the head state when the contestation deadline elapses or all participants have exercised their right to contest.
+1. Updates should be used during normal operation to commit and decommit utxos, finalization should be used if the participants want to stop operating the head, and the contestation mechanism should only be used to halt the head if consensus breaks down.
 
 The L1 component of the Hydra Head protocol becomes simpler, cheaper, and more scalable. In exchange, the L2 component is somewhat more complicated.
 
 ### Prepare
+
 A group of participants $\\mathcal{P} = \\{p\_i\\}$ decides to open a Hydra Head. In preparation, they must:
 
 - Establish pairwise communication channels between each other.
@@ -36,6 +40,7 @@ A group of participants $\\mathcal{P} = \\{p\_i\\}$ decides to open a Hydra Head
 Unlike the existing Hydra Head protocol, there is no need to generate a separate set of L2 participant keys, because the initialization phase has been eliminated. The participant keys $\\mathcal{K}$ are used in both the L1 and L2 parts of the Hydra Head protocol.
 
 ### Open the head
+
 The participants submit a multi-signed L1 <i>open</i> transaction $\\textrm{tx}\_\\textrm{open}(\\pi)$ that must:
 
 - Spend a seed input utxo $\\phi\_\\textrm{seed}$.
@@ -90,11 +95,13 @@ stateDiagram
   Final  --> [*]:    cleanup
   Halted --> [*]:    dissolve
 ```
+
 <p align="center">
 <b>Figure 1:</b> State diagram for the Hydra Head on L1.
 </p>
 
 ### Commit to the head
+
 The Hydra Head opens with an empty L2 active utxo set. To populate it, utxos must be committed to the head on L1.
 
 Suppose that one of that participants wants a utxo $\\omicron^\\textrm{L2}\_\\textrm{commit}$ to appear in the L2 utxo set at a (pubkey or script) address $\\alpha^\\textrm{L2}\_\\textrm{commit}$ with datum $\\delta^\\textrm{L2}\_\\textrm{commit}$ and value $\\textrm{val}^\\textrm{L2}\_\\textrm{commit}$.
@@ -135,11 +142,13 @@ The participants provide this assurance by multi-signing an L1 <i>assurance</i> 
 When the participant obtains this multi-signed assurance transaction $\\textrm{tx}\_\\textrm{assure}$ from a confirmed snapshot, he should sign and submit the commit transaction $\\textrm{tx}\_\\textrm{commit}$.
 
 ### Transact on L2
+
 Any participant may submit a new transaction on L2 while the head is open. The transaction is validated according to the Cardano ledger rules, and the effect of a valid L2 transaction is to remove its inputs and add its outputs to the L2 active utxo set.
 
 Each participant caches the received L2 transaction requests, without validating them, until they are needed to create or verify a snapshot.
 
 ### Decommit on L2
+
 Any participant may submit a decommit request on L2 while the head is open. The decommit request must include a notional transaction for the purposes of validating the request. The transaction must:
 
 - Spend any number of inputs.
@@ -162,6 +171,7 @@ The effect of a valid decommit request is to remove its notional transaction's i
 Each participant caches the received L2 decommit requests, without validating them, until they are needed to create or verify a snapshot.
 
 ### Create an L2 snapshot
+
 Participants take turns in a round-robin fashion to create the sequence of L2 snapshots. When a snapshot leader receives a transaction request and there is no snapshot currently accumulating signatures to be confirmed, then it is time for the snapshot leader to create and broadcast the next snapshot.
 
 Snapshots are versioned semantically. Let the previous snapshot be $\\Upsilon(s,r)$ and the next snapshot be $\\Upsilon(s',r')$. If $\\Upsilon(s',r')$ collects any commits or releases any decommits on L1 via an [\_update\_ transaction](#update-the-head), then it is <i>major</i> (with its major version $s'$ incremented and minor version $r'$ set to zero); otherwise, it is <i>minor</i> (with its minor version $r'$ incremented).
@@ -187,20 +197,21 @@ Update transactions cause the major version to be incremented because they cause
 - When a decommit is released from the head, the previous plans are invalidated because the head state utxo now contains fewer funds than they expect to release from the head.
 
 ### Update the head
+
 A snapshot leader must create a major snapshot $\\Upsilon(s',0)$ if, by the time that the previous snapshot $\\Upsilon(s,r)$ is confirmed, the snapshot leader has observed any L2 decommit requests in $\\mathcal{R}^\\textrm{L2}(s',0)$ or any eligible L1 commits $\\Phi^\\textrm{L1}\_\\textrm{eligible}(s', 0)$.
 
 The snapshot leader applies the L2 transaction and decommit requests $\\mathcal{R}^\\textrm{L2}(s',0)$ to the previous snapshot's L2 ledger state $\\mathcal{L}^\\textrm{L2}(s,r)$ to produce the ledger state $\\mathcal{L}^\\textrm{L2}(s',0)$. The snapshot leader then uses the deterministic algorithm $\\mathcal{Algo}\_\\textrm{settle}$ to:
 
 1. Select the largest prefix $\\Phi^\\textrm{L1}\_\\textrm{commit}(s') \\subseteq \\Phi^\\textrm{L1}\_\\textrm{eligible}(s', 0)$ of commits that can be collected in the snapshot $\\Upsilon(s',0)$, leaving the rest to be collected in future snapshots.
-2. Derive a non-empty tree of L1 settlement transactions $\\mathcal{T}\_\\textrm{settle}(s')$ that together update the open head state, collect the selected L1 commits, and release outputs corresponding to the L2 decommit set in $\\mathcal{L}^\\textrm{L2}(s',0)$.
+1. Derive a non-empty tree of L1 settlement transactions $\\mathcal{T}\_\\textrm{settle}(s')$ that together update the open head state, collect the selected L1 commits, and release outputs corresponding to the L2 decommit set in $\\mathcal{L}^\\textrm{L2}(s',0)$.
 
 The <i>update</i> transaction $\\textrm{tx}\_\\textrm{update}(s')$ is at the root of this tree and must:
 
 - Spend the previous head state utxo $\\phi\_\\textrm{open}(s)$ with state $(\\textrm{Open} \\;s)$.
 - Produce the updated head state utxo $\\phi\_\\textrm{open}(s')$ with state $(\\textrm{Open} \\; s')$.
 - Do at least one of the following:
-    - Spend one or more eligible commit utxos.
-    - Produce one or more decommit utxos and/or aggregate decommit utxos.
+  - Spend one or more eligible commit utxos.
+  - Produce one or more decommit utxos and/or aggregate decommit utxos.
 
 If $\\textrm{tx}\_\\textrm{update}(s')$ produces any aggregate decommit utxos, then each of its descendants in the tree $\\mathcal{T}\_\\textrm{settle}(s')$ splits a parent aggregate decommit into granular decommits and/or further aggregate decommits, such that the collective outputs of $\\mathcal{T}\_\\textrm{settle}(s')$ are equivalent to the required L2 decommits for the snapshot. Otherwise, $\\mathcal{T}\_\\textrm{settle}(s')$ is a singleton tree.
 
@@ -211,7 +222,7 @@ If a major snapshot is confirmed, then its update transaction remains valid rega
 The update transaction of a confirmed snapshot can only be invalidated if it fails to spend a commit utxo, which can occur in two ways:
 
 1. The commit utxo is never created because an alternative blockchain fork prevails and replaces the commit transaction with a conflicting transaction.
-2. The commit utxo is spent by its assurance transaction.
+1. The commit utxo is spent by its assurance transaction.
 
 To minimize the chance of invalidation, the update transaction must only collect commits with sufficient block depth and these commits must be spendable with enough time remaining before their assurance transactions become valid. These are the "eligible" commits for $\\Upsilon(s',0)$.
 
@@ -230,12 +241,12 @@ flowchart LR
   decommit\_3([Decommit 3])
   decommit\_4([Decommit 4])
   decommit\_5([Decommit 5])
-  
+
   update[Update]
   update\_2[Next update]
   split\_1[Split]
   split\_2[Split]
-  
+
   head\_state\_1 --> update
   commit\_1 --> update
   commit\_2 --> update
@@ -245,24 +256,26 @@ flowchart LR
   update --> agg\_decommit\_2
   update ----> decommit\_5
   update ----> head\_state\_2
-  
+
   head\_state\_2 --> update\_2
-  
+
   agg\_decommit\_1 --> split\_1
   split\_1 --> decommit\_1
   split\_1 --> decommit\_2
-  
+
   agg\_decommit\_2 --> split\_2
   split\_2 --> decommit\_3
   split\_2 --> decommit\_4
-  
+
   style update\_2 stroke-dasharray: 5 5
 ```
+
 <p align="center">
 <b>Figure 2:</b> Example transaction flow for a major snapshot's update that collects four commits and releases five decommits via two aggregate decommits. Utxos are represented by rounded nodes, while transactions are represented by square nodes.
 </p>
 
 ### Dissolve the head
+
 The snapshot certificate $\\xi(s,r)$ of a snapshot $\\Upsilon(s,r)$ consists of the snapshot's major and minor versions, a hash $\\eta(s,r)$, and the last major snapshot's open head state utxo $\\phi\_\\textrm{open}(s)$. If $\\Upsilon(s,r)$ is major, then $\\phi\_\\textrm{open}(s)$ is produced by its own update transaction.
 
 $$
@@ -276,8 +289,8 @@ The root dissolution transaction $\\textrm{tx}\_\\textrm{dissolve}(s,r)$ must:
 
 - Spend the halted head state utxo $\\phi\_\\textrm{halted}(s,r)$ with state $(\\textrm{Halted} \\; s \\; r)$, using the multi-signed snapshot certificate $\\xi(s,r)$ in the redeemer.
 - Do at least one of the following:
-    - Produce one or more granular outputs.
-    - Produce one or more aggregate outputs. Each aggregate output $\\phi\_\\textrm{agg}(s,r,j)$ is at the unparametrized validator $\\nu\_\\textrm{dissolve}$ with datum $(s, r, j)$.
+  - Produce one or more granular outputs.
+  - Produce one or more aggregate outputs. Each aggregate output $\\phi\_\\textrm{agg}(s,r,j)$ is at the unparametrized validator $\\nu\_\\textrm{dissolve}$ with datum $(s, r, j)$.
 - Verify that the granular and aggregate outputs hash to $\\eta(s,r)$.
 
 If $\\textrm{tx}\_\\textrm{dissolve}(s,r)$ produces any aggregate outputs, then each of its descendants in $\\mathcal{T}\_\\textrm{dissolve}(s,r)$ splits a parent aggregate output $\\phi\_\\textrm{agg}(s,r,j)$ into granular outputs and/or further aggregate outputs, using the corresponding multi-signed certificate $\\xi(s,r,j) \\in \\Xi(s,r)$ for authorization in the redeemer. Otherwise, $\\mathcal{T}\_\\textrm{dissolve}(s,r)$ is a singleton tree.
@@ -299,38 +312,40 @@ flowchart LR
   output\_5([Output 5])
   output\_6([Output 6])
   output\_7([Output 7])
-  
+
   dissolve\_1[Dissolve]
   dissolve\_2[Dissolve]
   dissolve\_3[Dissolve]
-  
+
   head\_state\_1 -- Cert s r --> dissolve\_1
   dissolve\_1 ----> output\_1
   dissolve\_1 ----> output\_2
   dissolve\_1 --> agg\_output\_1
   dissolve\_1 --> agg\_output\_2
-  
+
   agg\_output\_1 -- Cert s r 1 --> dissolve\_2
   dissolve\_2 --> output\_3
   dissolve\_2 --> output\_4
   dissolve\_3 --> output\_5
-  
+
   agg\_output\_2 -- Cert s r 2 --> dissolve\_3
   dissolve\_3 --> output\_6
   dissolve\_3 --> output\_7
 ```
+
 <p align="center">
 <b>Figure 3:</b> Example transaction flow for the dissolution of a hydra head into six granular outputs via two aggregate outputs.
 </p>
 
 ### Verify a snapshot
+
 Suppose that the latest confirmed snapshot is $\\Upsilon(s,r)$ and the snapshot leader broadcasts the next snapshot $\\Upsilon(s',r')$ to all the other participants. Each participant must verify this snapshot as follows before confirming it.
 
 First, the participant checks the snapshot validity preconditions:
 
 1. The current L1 head state is not halted or final.
-2. The snapshot was received from the expected snapshot leader.
-3. The snapshot version numbers are [correct](#create-an-l2-snapshot).
+1. The snapshot was received from the expected snapshot leader.
+1. The snapshot version numbers are [correct](#create-an-l2-snapshot).
 
 The participant waits until he has observed all of the L2 transaction and decommit requests $\\mathcal{R}^\\textrm{L2}(s',r')$. If the snapshot is major, the participant also waits until he observes all of the commit utxos $\\Phi^\\textrm{L1}\_\\textrm{commit}(s')$ on L1 and considers them [eligible for collection](#update-the-head).
 
@@ -349,32 +364,34 @@ The participant applies the dissolution transactions $\\mathcal{T}\_\\textrm{dis
 If the snapshot is minor, then the participant checks that:
 
 1. The snapshot certificate $\\xi(s',r')$ references the open head state utxo $\\phi\_\\textrm{open}(s)$ produced by the update transaction in the last major snapshot $\\Upsilon(s,0)$.
-2. The assurance transactions $\\mathcal{T}\_\\textrm{assure}(s',r')$ each consume a single pending commit utxo (which may not yet exist) and produce an [L2-equivalent](#commit-to-the-head) utxo.
-3. The L2 requests $\\mathcal{R}^\\textrm{L2}(s',r')$ contain no decommit requests.
-4. The L1 active utxo set in $\\mathcal{L}^\\textrm{Sim}\_\\textrm{dissolved}(s',r')$, excluding the head state utxo, is equivalent to the L2 active utxo set in $\\mathcal{L}^\\textrm{L2}(s',r')$.
+1. The assurance transactions $\\mathcal{T}\_\\textrm{assure}(s',r')$ each consume a single pending commit utxo (which may not yet exist) and produce an [L2-equivalent](#commit-to-the-head) utxo.
+1. The L2 requests $\\mathcal{R}^\\textrm{L2}(s',r')$ contain no decommit requests.
+1. The L1 active utxo set in $\\mathcal{L}^\\textrm{Sim}\_\\textrm{dissolved}(s',r')$, excluding the head state utxo, is equivalent to the L2 active utxo set in $\\mathcal{L}^\\textrm{L2}(s',r')$.
 
 If the snapshot is major, then the participant checks that:
 
 1. The snapshot certificate $\\xi(s',r')$ references the open head state utxo $\\phi\_\\textrm{open}(s')$ produced by the update transaction in snapshot $\\Upsilon(s',r')$.
-2. The assurance transactions $\\mathcal{T}\_\\textrm{assure}(s',r')$ each consume a single pending commit utxo (which may not yet exist) and produce an [L2-equivalent](#commit-to-the-head) utxo.
-3. The L2 new commits $\\Phi^\\textrm{L2}\_\\textrm{commit}(s')$ are [equivalent](#commit-to-the-head) to the L1 new commits $\\Phi^\\textrm{L1}\_\\textrm{commit}(s')$.
-4. The L1 active utxo set in $\\mathcal{L}^\\textrm{Sim}\_\\textrm{updated}(s')$, excluding the head state utxo, is equivalent to the L2 decommit set in $\\mathcal{L}^\\textrm{L2}(s',r')$.
-5. The L1 active utxo set in $\\mathcal{L}^\\textrm{Sim}\_\\textrm{dissolved}(s',r')$, excluding the head state utxo, is equivalent to the union of the L2 decommit and active utxo sets in $\\mathcal{L}^\\textrm{L2}(s',r')$.
+1. The assurance transactions $\\mathcal{T}\_\\textrm{assure}(s',r')$ each consume a single pending commit utxo (which may not yet exist) and produce an [L2-equivalent](#commit-to-the-head) utxo.
+1. The L2 new commits $\\Phi^\\textrm{L2}\_\\textrm{commit}(s')$ are [equivalent](#commit-to-the-head) to the L1 new commits $\\Phi^\\textrm{L1}\_\\textrm{commit}(s')$.
+1. The L1 active utxo set in $\\mathcal{L}^\\textrm{Sim}\_\\textrm{updated}(s')$, excluding the head state utxo, is equivalent to the L2 decommit set in $\\mathcal{L}^\\textrm{L2}(s',r')$.
+1. The L1 active utxo set in $\\mathcal{L}^\\textrm{Sim}\_\\textrm{dissolved}(s',r')$, excluding the head state utxo, is equivalent to the union of the L2 decommit and active utxo sets in $\\mathcal{L}^\\textrm{L2}(s',r')$.
 
 ### Confirm a snapshot
+
 A snapshot $\\Upsilon(s',r')$ becomes confirmed when all participants unanimously sign all of the assurance transactions $\\mathcal{T}\_\\textrm{assure}(s', r')$, all of the settlement transactions $\\mathcal{T}\_\\textrm{settle}(s')$, and all of the dissolution certificates $\\Xi(s',r')$.
 
 However, participants broadcast their signatures for the snapshot $\\Upsilon(s',r')$ in three rounds (if major) or two rounds (if minor):
 
 1. If a participant has verified the snapshot, then he broadcasts all of his snapshot signatures <i>except</i> for his signatures of the snapshot certificate $\\xi(s',r')$ and the update transaction $\\textrm{tx}\_\\textrm{update}(s')$.
-2. If a participant has received all signatures from all participants in round 1, then he broadcasts his signature of the snapshot certificate.
-3. If a participant has received all signatures from all participants in round 2, and the snapshot is major, then he broadcasts his signature of the update transaction.
+1. If a participant has received all signatures from all participants in round 1, then he broadcasts his signature of the snapshot certificate.
+1. If a participant has received all signatures from all participants in round 2, and the snapshot is major, then he broadcasts his signature of the update transaction.
 
 This ensures that no one can execute any of the snapshot's settlement or dissolution transactions until all of the participants have provided all of the signatures necessary for the snapshot's complete confirmation.
 
 Each participant should store the transactions and certificates of every confirmed snapshot, as long as they are relevant. Confirmed settlement transactions should be submitted without delay on L1.
 
 ### Finalize the head
+
 Suppose that one of the participants wants to stop operating the head but would prefer to obtain group consensus to do so. Instead, he withholds his usual [final-round signature](#confirm-a-snapshot) to confirm the current snapshot $\\Upsilon(s,r)$ and replaces it with an L2 finalization statement that contains:
 
 - His final-round signature of the snapshot $\\Upsilon(s,r)$.
@@ -404,13 +421,14 @@ The final update transaction $\\textrm{tx}\_\\textrm{final-update}(s')$ spends t
 The snapshot leader broadcasts the final snapshot using a special message reserved for final snapshots and participants confirm the final snapshot accordingly.
 
 ### Halt the head
+
 If L2 consensus breaks down, then it is impossible to finalize the head and produce all of its L2 utxos on L1 with efficient settlement transactions. Instead, the participants must engage the contestation mechanism to determine the latest snapshot and trigger its dissolution plan on L1.
 
 The contestation mechanism is a state machine with three states, which begins in the $\\textrm{Uncontested}$ state when the head opens.
 
 $$
 \\begin{align*}
-\\textrm{contest-state} &= 
+\\textrm{contest-state} &=
   \\textrm{Uncontested} \\\\ &\\;\\;|\\;\\;
   \\textrm{Contested} \\; s \\; r \\;
     t\_\\textrm{deadline} \\;
@@ -446,8 +464,8 @@ If the contestation mechanism is concluded and the L1 head state's major version
 - Verify that the major version $s$ matches in $\\phi\_\\textrm{contested}$ and $\\phi\_\\textrm{open}$.
 - Verify that the snapshot certificate $\\xi(s,r)$ references the major version $s$, the minor version $r$, and the open head state utxo $\\phi\_\\textrm{open}(s)$.
 - Verify that either of the following holds:
-    - The transaction validity interval starts after the contestation deadline $t\_\\textrm{deadline}$.
-    - The set of remaining contestants $\\mathcal{P}\_\\textrm{remaining}$ is empty.
+  - The transaction validity interval starts after the contestation deadline $t\_\\textrm{deadline}$.
+  - The set of remaining contestants $\\mathcal{P}\_\\textrm{remaining}$ is empty.
 
 Once the halted head state $\\phi\_\\textrm{halted}(s,r)$ is reached, any participant can submit the corresponding dissolution transactions $\\mathcal{T}\_\\textrm{dissolve}(s,r)$ generated by the [deterministic algorithm](#dissolve-the-head) $\\mathcal{Algo}\_\\textrm{dissolve}$.
 
@@ -457,8 +475,8 @@ If the contestation mechanism is concluded but the L1 head state's major version
 - Reference the open head state utxo $\\phi\_\\textrm{open}(s')$.
 - Verify that the open head state's major version is newer: $s' > s$.
 - Verify that either of the following holds:
-     - The transaction validity interval starts after the contestation deadline $t\_\\textrm{deadline}$.
-    - The set of remaining contestants $\\mathcal{P}\_\\textrm{remaining}$ is empty.
+  - The transaction validity interval starts after the contestation deadline $t\_\\textrm{deadline}$.
+  - The set of remaining contestants $\\mathcal{P}\_\\textrm{remaining}$ is empty.
 
 If the head state is final, then the contestation mechanism can be cleaned up regardless of the contest state. The cleanup transaction $\\textrm{tx}\_\\textrm{cleanup}$ must:
 
@@ -466,20 +484,25 @@ If the head state is final, then the contestation mechanism can be cleaned up re
 - Spend the final head state utxo $\\phi\_\\textrm{final}$, with the $\\textrm{Cleanup}$ redeemer.
 
 ## L1 specification
+
 [TODO]
 
 ## L2 specification
+
 [TODO]
 
 ### Deterministic algorithms
+
 [TODO]
 
 ### Asynchronous messaging protocol
+
 [TODO]
 
 ## Rationale
 
 ### Native script address for commits on L1
+
 Committing to a head by sending a utxo to a native script address has a major advantage that spending that utxo does not incur any script execution cost. The tradeoff for this is that the committer must participate in the L2 protocol to obtain an assurance transaction before submitting the commit transaction on L1.
 
 A more heavyweight alternative to this would be committing to an unparametrized Plutus script address and adding the commit timeout to the L1 datum, so that the Plutus script can enforce the recoverability of the commit without a separate assurance transaction needing to be signed in advance. This may make it less complicated for external people and dApps to commit utxos to the Hydra Head, but spending such Plutus-guarded commits would be more expensive due to script execution cost. The extra cost would be covered upfront by the funds contained in the committed utxo.
@@ -487,16 +510,19 @@ A more heavyweight alternative to this would be committing to an unparametrized 
 Perhaps, the Hydra Head protocol could support both kinds of commits, allowing users to choose between cost-efficiency and convenience.
 
 ### Separate contestation thread
+
 This prevents logical branching in the head state that would interfere with the unconditional/deterministic nature of settlement transactions.
 
 The only remaining point of contention occurs when the contestation mechanism concludes with an old snapshot certificate and then the head is halted with that old snapshot, before a confirmed update transaction can increment the head state's major version above that old snapshot. However, this shouldn't happen if participants are honest and diligent in the contestation mechanism, and if it does, then the participants have in some sense consented to it.
 
 ### Interoperability with L1 applications
+
 Interoperability with L1 applications is straightforward. An application that wants to send a commit to a head should make a request to one of the participants (via some off-chain API) to obtain a multi-signed assurance transaction, and then it can send the commit to the head's native script address $\\zeta^\\mathcal{K}$ to be collected by the head in a subsequent major snapshot's update. The committed funds are safeguarded under the same multi-signature guarantee as if they were inside the Hydra Head, and the external application can set its desired timeout for the pending commit to be collected by the head.
 
 The application can monitor the state of the funds in the head by querying participants about the L2 ledger state (via some off-chain API). When desired, it can make a request to one of the participants to decommit the funds from the head. The head doesn't need to halt for the decommitted funds to be released to the application on L1.
 
 ### Snapshot atomicity
+
 Snapshot confirmation should be binary: either the entirety of a snapshot's certificates and transactions are signed by all participants and can be executed, or none of them are. It would be problematic if any participant could wait for all the other participants' snapshot signatures and then cherry-pick which transactions and certificates he wants to sign.
 
 Atomicity of snapshot confirmation is provided by transaction and hash causality:
@@ -510,9 +536,11 @@ Therefore, a major snapshot can take effect only if its update transaction is si
 ## Future work
 
 ### Dynamic participant membership
+
 In the Hydrozoa design, each major snapshot is backwards incompatible with previous snapshots because it can change the balance of funds contained in the head utxo. Since it is already backwards incompatible, then in principle there's no reason why it couldn't also include a change to the membership of Hydra Head participants for subsequent snapshots.
 
 Such a change of membership could be proposed as a governance motion on L2 and would have to be manually ratified by each participant, in order to be included in the next snapshot.
 
 ## Copyright
+
 © "Hydrozoa: Lightweight and scalable Hydra Heads" by George Flerovsky is licensed under the Creative Commons Attribution 4.0 International Public License ([CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/legalcode)).
