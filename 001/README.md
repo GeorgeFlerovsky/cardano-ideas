@@ -174,7 +174,7 @@ Each participant caches the received L2 decommit requests, without validating th
 
 Participants take turns in a round-robin fashion to create the sequence of L2 snapshots. When a snapshot leader receives a transaction request and there is no snapshot currently accumulating signatures to be confirmed, then it is time for the snapshot leader to create and broadcast the next snapshot.
 
-Snapshots are versioned semantically. Let the previous snapshot be $\\Upsilon(s,r)$ and the next snapshot be $\\Upsilon(s',r')$. If $\\Upsilon(s',r')$ collects any commits or releases any decommits on L1 via an [\_update\_ transaction](#update-the-head), then it is <i>major</i> (with its major version $s'$ incremented and minor version $r'$ set to zero); otherwise, it is <i>minor</i> (with its minor version $r'$ incremented).
+Snapshots are versioned semantically. Let the previous snapshot be $\\Upsilon(s,r)$ and the next snapshot be $\\Upsilon(s',r')$. If $\\Upsilon(s',r')$ collects any commits or releases any decommits on L1 via an [<i>update</i> transaction](#update-the-head), then it is <i>major</i> (with its major version $s'$ incremented and minor version $r'$ set to zero); otherwise, it is <i>minor</i> (with its minor version $r'$ incremented).
 
 $$
 (s', r') =
@@ -281,6 +281,7 @@ The snapshot certificate $\\xi(s,r)$ of a snapshot $\\Upsilon(s,r)$ consists of 
 $$
 \\xi(s,r) = \\left( s, r, \\eta(s, r), \\phi\_\\textrm{open}(s) \\right)
 $$
+
 The snapshot's L2 ledger state $\\mathcal{L}^\\textrm{L2}(s,r)$ is the result of applying the snapshot leader's observed L2 requests $\\mathcal{R}^\\textrm{L2}(s,r)$ to the previous snapshot's ledger state. The deterministic algorithm $\\mathcal{Algo}\_\\textrm{dissolve-cert}$ derives the tree of dissolution certificates $\\Xi\_\\textrm{dissolve}(s,r)$ from the L2 active utxo set in $\\mathcal{L}^\\textrm{L2}(s,r)$, with the snapshot certificate $\\xi(s,r)$ at the root of this tree.
 
 Suppose that the halted head state utxo $\\phi\_\\textrm{halted}(s,r)$ exists with the state $(\\textrm{Halted} \\; s \\; r)$. The deterministic algorithm $\\mathcal{Algo}\_\\textrm{dissolve-tx}$ derives a tree of transactions $\\mathcal{T}\_\\textrm{dissolve}(s,r)$ from the certificates $\\Xi\_\\textrm{dissolve}(s,r)$ and the halted head state utxo $\\phi\_\\textrm{halted}(s,r)$. These transactions collectively spend $\\phi\_\\textrm{halted}(s,r)$ and produce outputs equivalent to the L2 active utxo set of the snapshot $\\Upsilon(s,r)$, using the corresponding certificates in $\\Xi\_\\textrm{dissolve}(s,r)$ for authorization.
@@ -298,6 +299,7 @@ If $\\textrm{tx}\_\\textrm{dissolve}(s,r)$ produces any aggregate outputs, then 
 $$
 \\xi(s,r,j) = (s, r, j, \\eta(s,r,j))
 $$
+
 The snapshot certificate references $\\phi\_\\textrm{open}(s)$ to ensure that the [halting mechanism](#halt-the-head) can only halt the head with the state $(\\textrm{Halted} \\; s \\; r)$.
 
 ```mermaid
