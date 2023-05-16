@@ -33,11 +33,11 @@ The L1 component of the Hydra Head protocol becomes simpler, cheaper, and more s
 A group of participants $\\mathcal{P} = \\{p\_i\\}$ decides to open a Hydra Head. In preparation, they must:
 
 - Establish pairwise communication channels between each other.
-- Generate the participant keys $\\mathcal{K} = \\{(k\_{i}^\\textrm{ver}, k\_i^\\textrm{sig})\\}$, with each signing key $k\_i^\\textrm{sig}$ kept privately by its respective participant and each verification key shared with all participants.
+- Generate the participant keys $K = \\{(k\_{i}^\\textrm{ver}, k\_i^\\textrm{sig})\\}$, with each signing key $k\_i^\\textrm{sig}$ kept privately by its respective participant and each verification key shared with all participants.
 - Agree on the timeout period for pending commits $T\_P$.
 - Agree on the contestation period $T\_C$.
 
-Unlike the existing Hydra Head protocol, there is no need to generate a separate set of L2 participant keys, because the initialization phase has been eliminated. The participant keys $\\mathcal{K}$ are used in both the L1 and L2 parts of the Hydra Head protocol.
+Unlike the existing Hydra Head protocol, there is no need to generate a separate set of L2 participant keys, because the initialization phase has been eliminated. The participant keys $K$ are used in both the L1 and L2 parts of the Hydra Head protocol.
 
 ### Open the head
 
@@ -52,12 +52,12 @@ The participants submit a multi-signed L1 <i>open</i> transaction $\\textrm{tx}\
 The head state utxo is uniquely identified by the state token $\\textrm{ST}$ it holds, which is minted by an unparametrized minting policy $\\mu\_\\textrm{head}$ that sets its token name to the hash of the L1 protocol parameters.
 
 $$
-\\begin{align*}
+\\begin{aligned}
 \\exists \\{ \\mu\_\\textrm{head} &\\mapsto \\pi \\mapsto 1 \\} \\\\
 \\textrm{ST} &= (\\mu\_\\textrm{head}, \\pi) \\\\
 \\pi &= \\textrm{hash}(\\textrm{params}) \\\\
-\\textrm{params} &= (\\mathcal{K}, T\_C, T\_P, \\phi\_\\textrm{seed})
-\\end{align*}
+\\textrm{params} &= (K, T\_C, T\_P, \\phi\_\\textrm{seed})
+\\end{aligned}
 $$
 
 The datum of the state utxo contains the immutable $\\textrm{params}$ and the mutable $\\textrm{state}$.
@@ -69,13 +69,13 @@ $$
 The state of the Hydra Head is either open, halted, or final:
 
 $$
-\\begin{align*}
+\\begin{aligned}
 \\textrm{state} &=
   \\textrm{Open} \\;s \\\\ &\\;\\;|\\;\\;
   \\textrm{Final} \\\\ &\\;\\;|\\;\\;
   \\textrm{Halted} \\;s \\;r \\\\ \\\\
 s &\\in \\mathbb{N}
-\\end{align*}
+\\end{aligned}
 $$
 
 The state is initialized as $(\\textrm{Open} \\; 0)$ when the head is opened. The open state tracks only the [major version](#create-an-l2-snapshot) $s$ of some snapshot, while the halted state also tracks a minor version $r$ of some snapshot. The final state does not track any version number.
@@ -115,14 +115,14 @@ $$
   \\right)
 $$
 
-The participant should prepare (but neither sign nor submit) an L1 <i>commit</i> transaction $\\textrm{tx}\_\\textrm{commit}$ that produces the output $\\omicron^\\textrm{L1}\_\\textrm{commit}$ (with output reference $\\phi^\\textrm{L1}\_\\textrm{commit}$) at the participants' native script address $\\zeta^\\mathcal{K}$:
+The participant should prepare (but neither sign nor submit) an L1 <i>commit</i> transaction $\\textrm{tx}\_\\textrm{commit}$ that produces the output $\\omicron^\\textrm{L1}\_\\textrm{commit}$ (with output reference $\\phi^\\textrm{L1}\_\\textrm{commit}$) at the participants' native script address $\\zeta^K$:
 
 $$
-\\begin{align*}
+\\begin{aligned}
 \\omicron^\\textrm{L1}\_\\textrm{commit} &=
   \\left(
     \\textrm{val}^\\textrm{L2}\_\\textrm{commit},
-    \\zeta^\\mathcal{K},
+    \\zeta^K,
     \\delta^\\textrm{L1}\_\\textrm{commit}
   \\right) \\\\
 \\delta^\\textrm{L1}\_\\textrm{commit} & =
@@ -130,12 +130,12 @@ $$
     \\alpha^\\textrm{L2}\_\\textrm{commit},
     \\delta^\\textrm{L2}\_\\textrm{commit}
   \\right)
-\\end{align*}
+\\end{aligned}
 $$
 
-The native script $\\zeta^\\mathcal{K}$ allows utxos at its address to be spent only by transactions that have valid signatures for all the verification keys in $\\mathcal{K}$.
+The native script $\\zeta^K$ allows utxos at its address to be spent only by transactions that have valid signatures for all the verification keys in $K$.
 
-Before signing or submitting $\\textrm{tx}\_\\textrm{commit}$, the participant should request <i>assurance</i> on L2 from the other participants that the pending commit $\\phi^\\textrm{L1}\_\\textrm{commit}$ would be recoverable at a future time $t\_\\textrm{assure}$ (at least $T\_P$ seconds after the request is made), if the participant submits the commit transaction but no update transaction collects it into the head state. This prevents the commit from being stranded at $\\zeta^\\mathcal{K}$ by participant inaction.
+Before signing or submitting $\\textrm{tx}\_\\textrm{commit}$, the participant should request <i>assurance</i> on L2 from the other participants that the pending commit $\\phi^\\textrm{L1}\_\\textrm{commit}$ would be recoverable at a future time $t\_\\textrm{assure}$ (at least $T\_P$ seconds after the request is made), if the participant submits the commit transaction but no update transaction collects it into the head state. This prevents the commit from being stranded at $\\zeta^K$ by participant inaction.
 
 The participants provide this assurance by multi-signing an L1 <i>assurance</i> transaction $\\textrm{tx}\_\\textrm{assure}$ that spends $\\phi^\\textrm{L1}\_\\textrm{commit}$ to produce $\\omicron^\\textrm{L2}\_\\textrm{commit}$, on or after time $t\_\\textrm{assure}$. This transaction should be included in a future snapshot and its signatures are gathered via the snapshot confirmation process.
 
@@ -215,7 +215,7 @@ The <i>update</i> transaction $\\textrm{tx}\_\\textrm{update}(s')$ is at the roo
 
 If $\\textrm{tx}\_\\textrm{update}(s')$ produces any aggregate decommit utxos, then each of its descendants in the tree $\\mathcal{T}\_\\textrm{settle}(s')$ splits a parent aggregate decommit into granular decommits and/or further aggregate decommits, such that the collective outputs of $\\mathcal{T}\_\\textrm{settle}(s')$ are equivalent to the required L2 decommits for the snapshot. Otherwise, $\\mathcal{T}\_\\textrm{settle}(s')$ is a singleton tree.
 
-All aggregate decommits must be sent to the participants' native script address $\\zeta^\\mathcal{K}$, with their datums set to the bytestring $\\textrm{AggDecommit}$. They must be ignored by participants for the purposes of identifying eligible commits and none of them can remain unspent after the settlement transactions are executed.
+All aggregate decommits must be sent to the participants' native script address $\\zeta^K$, with their datums set to the bytestring $\\textrm{AggDecommit}$. They must be ignored by participants for the purposes of identifying eligible commits and none of them can remain unspent after the settlement transactions are executed.
 
 If a major snapshot is confirmed, then its update transaction remains valid regardless of what may happen in any future snapshots. Furthermore, each update transaction $\\textrm{tx}\_\\textrm{update}(s')$ depends on the head state output of its predecessor update transaction $\\textrm{tx}\_\\textrm{update}(s)$, which means that the update transactions can only be executed in order of major snapshot versions. Moreover, the [halting mechanism](#halt-the-head) for the head ensures that all update transactions for confirmed snapshots must be executed before the head can be dissolved.
 
@@ -429,13 +429,13 @@ If L2 consensus breaks down, then it is impossible to finalize the head and prod
 The contestation mechanism is a state machine with three states, which begins in the $\\textrm{Uncontested}$ state when the head opens.
 
 $$
-\\begin{align*}
+\\begin{aligned}
 \\textrm{contest-state} &=
   \\textrm{Uncontested} \\\\ &\\;\\;|\\;\\;
   \\textrm{Contested} \\; s \\; r \\;
     t\_\\textrm{deadline} \\;
     \\mathcal{P}\_\\textrm{remaining}
-  \\end{align*}
+  \\end{aligned}
 $$
 
 From the $\\textrm{Uncontested}$ state, any participant can submit a discord transaction $\\textrm{tx}\_\\textrm{discord}$ to engage the contestation mechanism. The discord transaction must:
@@ -519,7 +519,7 @@ The only remaining point of contention occurs when the contestation mechanism co
 
 ### Interoperability with L1 applications
 
-Interoperability with L1 applications is straightforward. An application that wants to send a commit to a head should make a request to one of the participants (via some off-chain API) to obtain a multi-signed assurance transaction, and then it can send the commit to the head's native script address $\\zeta^\\mathcal{K}$ to be collected by the head in a subsequent major snapshot's update. The committed funds are safeguarded under the same multi-signature guarantee as if they were inside the Hydra Head, and the external application can set its desired timeout for the pending commit to be collected by the head.
+Interoperability with L1 applications is straightforward. An application that wants to send a commit to a head should make a request to one of the participants (via some off-chain API) to obtain a multi-signed assurance transaction, and then it can send the commit to the head's native script address $\\zeta^K$ to be collected by the head in a subsequent major snapshot's update. The committed funds are safeguarded under the same multi-signature guarantee as if they were inside the Hydra Head, and the external application can set its desired timeout for the pending commit to be collected by the head.
 
 The application can monitor the state of the funds in the head by querying participants about the L2 ledger state (via some off-chain API). When desired, it can make a request to one of the participants to decommit the funds from the head. The head doesn't need to halt for the decommitted funds to be released to the application on L1.
 
