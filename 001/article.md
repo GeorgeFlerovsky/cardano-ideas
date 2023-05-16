@@ -52,12 +52,12 @@ The participants submit a multi-signed L1 <i>open</i> transaction $\textrm{tx}_\
 The head state utxo is uniquely identified by the state token $\textrm{ST}$ it holds, which is minted by an unparametrized minting policy $\mu_\textrm{head}$ that sets its token name to the hash of the L1 protocol parameters.
 
 $$
-\begin{align*}
+\begin{aligned}
 \exists \{ \mu_\textrm{head} &\mapsto \pi \mapsto 1 \} \\
 \textrm{ST} &= (\mu_\textrm{head}, \pi) \\
 \pi &= \textrm{hash}(\textrm{params}) \\
 \textrm{params} &= (K, T_C, T_P, \phi_\textrm{seed})
-\end{align*}
+\end{aligned}
 $$
 
 The datum of the state utxo contains the immutable $\textrm{params}$ and the mutable $\textrm{state}$.
@@ -69,13 +69,13 @@ $$
 The state of the Hydra Head is either open, halted, or final:
 
 $$
-\begin{align*}
+\begin{aligned}
 \textrm{state} &=
   \textrm{Open} \;s \\ &\;\;|\;\;
   \textrm{Final} \\ &\;\;|\;\;
   \textrm{Halted} \;s \;r \\ \\
 s &\in \mathbb{N}
-\end{align*}
+\end{aligned}
 $$
 
 The state is initialized as $(\textrm{Open} \; 0)$ when the head is opened. The open state tracks only the [major version](#create-an-l2-snapshot) $s$ of some snapshot, while the halted state also tracks a minor version $r$ of some snapshot. The final state does not track any version number.
@@ -118,7 +118,7 @@ $$
 The participant should prepare (but neither sign nor submit) an L1 <i>commit</i> transaction $\textrm{tx}_\textrm{commit}$ that produces the output $\omicron^\textrm{L1}_\textrm{commit}$ (with output reference $\phi^\textrm{L1}_\textrm{commit}$) at the participants' native script address $\zeta^K$:
 
 $$
-\begin{align*}
+\begin{aligned}
 \omicron^\textrm{L1}_\textrm{commit} &=
   \left(
     \textrm{val}^\textrm{L2}_\textrm{commit},
@@ -130,7 +130,7 @@ $$
     \alpha^\textrm{L2}_\textrm{commit},
     \delta^\textrm{L2}_\textrm{commit}
   \right)
-\end{align*}
+\end{aligned}
 $$
 
 The native script $\zeta^K$ allows utxos at its address to be spent only by transactions that have valid signatures for all the verification keys in $K$.
@@ -429,13 +429,13 @@ If L2 consensus breaks down, then it is impossible to finalize the head and prod
 The contestation mechanism is a state machine with three states, which begins in the $\textrm{Uncontested}$ state when the head opens.
 
 $$
-\begin{align*}
+\begin{aligned}
 \textrm{contest-state} &=
   \textrm{Uncontested} \\ &\;\;|\;\;
   \textrm{Contested} \; s \; r \;
     t_\textrm{deadline} \;
     \mathcal{P}_\textrm{remaining}
-  \end{align*}
+  \end{aligned}
 $$
 
 From the $\textrm{Uncontested}$ state, any participant can submit a discord transaction $\textrm{tx}_\textrm{discord}$ to engage the contestation mechanism. The discord transaction must:
